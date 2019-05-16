@@ -2,17 +2,16 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const graphqlHttp = require('express-graphql');
 const { buildSchema } = require('graphql');
+const mongoose = require('mongoose');
+const Home = require('./models/homes').default
 
 const app = express();
-
-const homes = []
 
 app.use(bodyParser.json());
 
 app.use('/graphql', graphqlHttp({
     schema: buildSchema(`
         type Home {
-            _id: ID!
             name: String!
             location: String!
             homeType: String!
@@ -49,19 +48,34 @@ app.use('/graphql', graphqlHttp({
             return homes
         },
         addHome: (args) => {
-            const home = {
-            _id: Math.random().toString(),
+            const home = new Home ({
             name: args.homeInput.name,
             location: args.homeInput.location,
             homeType: args.homeInput.homeType,
-            size: args.homeInput.size,
+            size: args.homeInput.size, 
             price: +args.homeInput.price,
-            datePosted: args.homeInput.datePosted
-            }
-            homes.push(home);
-            return home;
+            datePosted: new Date(args.homeInput.date)
+            });
+            return home
+            .save()
+            .then(result => {
+                console.log(result);
+                return {...result._doc};
+            })
+            .catch(err => {
+                console.log(err)
+                throw err; 
+            });
         }
     },
     graphiql: true
 }));
-app.listen(3000);
+
+mongoose.connect(`mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD
+}@cluster0-fhwxu.mongodb.net/${process.env.MONGO_DB}?retryWrites=true`)
+.then(() => {
+    app.listen(3000);
+})
+.catch(err => {
+    console.log(err);
+});
