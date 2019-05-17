@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const graphqlHttp = require('express-graphql');
 const { buildSchema } = require('graphql');
 const mongoose = require('mongoose');
-const Home = require('./models/homes').default
+const Home = require('./models/homes');
 
 const app = express();
 
