@@ -8,7 +8,7 @@ const homeSchema = new Schema({
     },
     location: {
         type: String,
-        required: true
+        required: true 
     },
     homeType: {
         type: String,
@@ -26,6 +26,10 @@ const homeSchema = new Schema({
         type: Date,
         required: true
     },
+    creator: {
+        type: Schema.Types.ObjectId,
+        ref: 'AdminUser'
+    }
 });
 
 module.exports =  mongoose.model('Home', homeSchema);
