@@ -80,19 +80,32 @@ app.use('/graphql', graphqlHttp({
             homeType: args.homeInput.homeType,
             size: args.homeInput.size, 
             price: +args.homeInput.price,
-            datePosted: moment().format(), 
+            datePosted: moment().format(),
+            creator: '5cefadad1c79d41f78dc28a9'
             });
+            let createdHome;
             return home
             .save()
             .then(result => {
-                console.log(result);
+                createdHome = {...result._doc, _id: result.id};
+                return adminUser.findById('5cefadad1c79d41f78dc28a9')
                 return {...result._doc, _id: result.id};
+            })
+            .then(user => {
+                if(!user) {
+                    throw new Error('user not found.');
+                }
+                user.createdHomes.push(home);
+                return user.save();
+            })
+            .then(result => {
+                return createdHome;
             })
             .catch(err => {
                 console.log(err)
                 throw err; 
             });
-        },
+        }, 
         createAdmin: args => {
             return adminUser.findOne({email: args.adminInput.email}).then(user => {
                 if(user) {
