@@ -3,8 +3,10 @@ const bodyParser = require('body-parser');
 const graphqlHttp = require('express-graphql');
 const { buildSchema } = require('graphql');
 const moment = require('moment');
+const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const Home = require('./models/homes');
+const adminUser = require('./models/adminUser');
 
 const app = express();
 
@@ -13,6 +15,7 @@ app.use(bodyParser.json());
 app.use('/graphql', graphqlHttp({
     schema: buildSchema(`
         type Home {
+            _id: ID!
             name: String!
             location: String!
             homeType: String!
@@ -21,6 +24,13 @@ app.use('/graphql', graphqlHttp({
             datePosted: String!
         }
         
+        type adminUser {
+            _id: ID!
+            userName: String!
+            email: String!
+            password: String
+        }
+
         input HomeInput {
             name: String!
             location: String!
@@ -30,11 +40,18 @@ app.use('/graphql', graphqlHttp({
             datePosted: String!
         }
 
+        input adminInput {
+            userName: String!
+            email: String!
+            password: String!
+        }
+
         type RootQuery {
             homes: [Home!]!
         }
         type RootMutation {
             addHome(homeInput: HomeInput): Home
+            createAdmin(adminInput: adminInput): adminUser
         }
 
         schema {
@@ -49,7 +66,7 @@ app.use('/graphql', graphqlHttp({
            return Home.find()
            .then(homes => {
                 return homes.map(home => {
-                    return {...home._doc };
+                    return {...home._doc, _id: home.id };
                 });
            })
            .catch(err => {
@@ -69,11 +86,33 @@ app.use('/graphql', graphqlHttp({
             .save()
             .then(result => {
                 console.log(result);
-                return {...result._doc};
+                return {...result._doc, _id: result.id};
             })
             .catch(err => {
                 console.log(err)
                 throw err; 
+            });
+        },
+        createAdmin: args => {
+            return adminUser.findOne({email: args.adminInput.email}).then(user => {
+                if(user) {
+                    throw new Error('user exist already.');
+                }
+                return bcrypt.hash(args.adminInput.password, 12)
+            })
+            .then(hashedPwd => {
+                const admin = new adminUser({
+                    userName: args.adminInput.userName,
+                    email: args.adminInput.email,
+                    password: hashedPwd
+                });
+                return admin.save();
+            })
+            .then(result => {
+                return {...result._doc, password: null, _id: result.id};
+            })
+            .catch(err => {
+                throw err;
             });
         }
     },
