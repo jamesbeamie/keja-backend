@@ -2,8 +2,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const graphqlHttp = require('express-graphql');
 const { buildSchema } = require('graphql');
+const moment = require('moment');
 const mongoose = require('mongoose');
-const Home = require('./models/homes').default
+const Home = require('./models/homes');
 
 const app = express();
 
@@ -45,7 +46,15 @@ app.use('/graphql', graphqlHttp({
     //resolver
     rootValue: {
         homes: () => {
-            return homes
+           return Home.find()
+           .then(homes => {
+                return homes.map(home => {
+                    return {...home._doc };
+                });
+           })
+           .catch(err => {
+               throw err;
+           });
         },
         addHome: (args) => {
             const home = new Home ({
@@ -54,7 +63,7 @@ app.use('/graphql', graphqlHttp({
             homeType: args.homeInput.homeType,
             size: args.homeInput.size, 
             price: +args.homeInput.price,
-            datePosted: new Date(args.homeInput.date)
+            datePosted: moment().format(), 
             });
             return home
             .save()
