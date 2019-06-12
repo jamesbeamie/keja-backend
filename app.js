@@ -12,6 +12,36 @@ const app = express();
 
 app.use(bodyParser.json());
 
+const homes = homeIds => {
+    return Home.find({_id: {$in: homeIds}})
+        .then(homes => {
+            return homes.map(home => {
+                return { 
+                    ...home._doc, 
+                    _id: home.id, 
+                    creator: user.bind(this, home.creator)
+                }
+            });
+        })
+        .catch(err => {
+
+        });
+}
+
+const admin = userId => {
+    return adminUser.findById(userId)
+    .then(user => {
+        return {
+            ...user._doc, 
+            _id: user.id,
+            // createdHomes: homes.bind(this, user._doc.createdHomes)
+        }
+    })
+    .catch(err => {
+        throw err;
+    });
+}
+
 app.use('/graphql', graphqlHttp({
     schema: buildSchema(`
         type Home {
@@ -22,6 +52,7 @@ app.use('/graphql', graphqlHttp({
             size: String!
             price: Float!
             datePosted: String!
+            creator: adminUser!
         }
         
         type adminUser {
@@ -29,6 +60,7 @@ app.use('/graphql', graphqlHttp({
             userName: String!
             email: String!
             password: String
+            createdHomes: [Home!]
         }
 
         input HomeInput {
@@ -65,8 +97,13 @@ app.use('/graphql', graphqlHttp({
         homes: () => {
            return Home.find()
            .then(homes => {
+               console.log("homes", homes);
                 return homes.map(home => {
-                    return {...home._doc, _id: home.id };
+                    return {
+                        ...home._doc, 
+                        _id: home.id,
+                        creator: admin.bind(this, home._doc.creator)
+                     };
                 });
            })
            .catch(err => {
@@ -107,7 +144,8 @@ app.use('/graphql', graphqlHttp({
             });
         }, 
         createAdmin: args => {
-            return adminUser.findOne({email: args.adminInput.email}).then(user => {
+            return adminUser.findOne({email: args.adminInput.email})
+            .then(user => {
                 if(user) {
                     throw new Error('user exist already.');
                 }
